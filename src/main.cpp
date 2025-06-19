@@ -10,38 +10,6 @@ using namespace std;
 
 #include "Dependencies.h"
 
-// Protótipos das funções
-void initializeGLFW();
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
-int setupGeometry();
-int loadSimpleOBJ(string filePATH, int &nVertices);
-GLuint loadTexture(string filePath, int &width, int &height);
-
-// Dimensões da janela (pode ser alterado em tempo de execução)
-const GLuint WIDTH = 1000, HEIGHT = 1000;
-bool rotateX=false, rotateY=false, rotateZ=false;
-const int NUM_OBJECTS = 2;
-
-//Variáveis globais da câmera 
-glm::vec3 cameraPos = glm::vec3(1.5f, 0.3f,10.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f,0.0,-1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f,1.0f,0.0f);
-
-//–– tempo para velocidade constante ––
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
-
-//–– mouse ––
-float yaw   = -90.0f; // inicial apontando no -Z
-float pitch =   0.0f;
-float lastX =  WIDTH  / 2.0f;
-float lastY =  HEIGHT / 2.0f;
-bool  firstMouse = true;
-float fov =  45.0f;
-
 struct Object {
 	GLuint VAO; //Índice do buffer de geometria
 	GLuint texID; //Identificador da textura carregada
@@ -58,9 +26,43 @@ struct Object {
 struct Material {
     glm::vec3 Ka;       // cor ambiente
     glm::vec3 Ks;       // cor especular
-    float Ns;           // shininess
+    glm::vec3 Kd;       // cor especular
+    float Ns;           // shininess (q)
     std::string map_Kd; // caminho da textura difusa
 };
+
+// Protótipos das funções
+void initializeGLFW();
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void processInput(GLFWwindow *window);
+int setupGeometry();
+int loadSimpleOBJ(string filePATH, int &nVertices);
+GLuint loadTexture(string filePath, int &width, int &height);
+Material loadMTL(const std::string& filename);
+
+// Dimensões da janela (pode ser alterado em tempo de execução)
+const GLuint WIDTH = 1000, HEIGHT = 1000;
+bool rotateX=false, rotateY=false, rotateZ=false;
+const int NUM_OBJECTS = 2;
+
+//Variáveis globais da câmera 
+glm::vec3 cameraPos = glm::vec3(1.5f, 0.3f, 7.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f,0.0,-1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f,1.0f,0.0f);
+
+//–– tempo para velocidade constante ––
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
+//–– mouse ––
+float yaw   = -90.0f; // inicial apontando no -Z
+float pitch =   0.0f;
+float lastX =  WIDTH  / 2.0f;
+float lastY =  HEIGHT / 2.0f;
+bool  firstMouse = true;
+float fov =  45.0f;
 
 
 const GLchar* VERTEX_SHADER_PATH = "../shaders/phong.vs";
@@ -68,10 +70,13 @@ const GLchar* FRAGMENT_SHADER_PATH = "../shaders/phong.fs";
 
 const string OBJ_PATH = "../assets/models/rat/model.obj";
 const string TEXTURE_PATH = "../assets/models/rat/texture.jpeg";
+const string MTL_PATH = "../assets/models/rat/model_1.mtl";
 
 GLFWwindow* window;
 
 Object objects[NUM_OBJECTS];
+Material mats[NUM_OBJECTS];
+
 int selectedObject = 0;
 
 int main()
@@ -94,9 +99,10 @@ int main()
 		objects[i].VAO = loadSimpleOBJ(OBJ_PATH, objects[i].nVertices);
 		int texWidth,texHeight;
 		objects[i].texID = loadTexture(TEXTURE_PATH, texWidth, texHeight);
+		mats[i] = loadMTL(MTL_PATH);
 	}
 
-	objects[1].offsetX = 3.0f;
+	objects[1].offsetX = 2.0f;
 
 	glUseProgram(shader.ID); 
 
@@ -105,17 +111,6 @@ int main()
 	GLint modelLoc = glGetUniformLocation(shader.ID, "model");
 	model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-
-	// relacionado à câmera
-	//Matriz de view
-	glm::mat4 view = glm::lookAt(cameraPos, glm::vec3(0.0f,0.0f,0.0f), cameraUp);
-	glUniformMatrix4fv(glGetUniformLocation(shader.ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
-	
-  //Matriz de projeção
-	/* glm::mat4 projection = glm::perspective(glm::radians(39.6f),(float)WIDTH/HEIGHT,0.1f,100.0f);
-	glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection)); */
-	 glm::mat4 projection = glm::perspective(glm::radians(fov), (float)WIDTH/HEIGHT, 0.1f, 100.0f);
-	glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
 	//Buffer de textura no shader
 	glUniform1i(glGetUniformLocation(shader.ID, "texBuffer"), 0);
@@ -133,7 +128,6 @@ int main()
 	shader.setVec3("lightPos",-2.0, 10.0, 3.0);
 	shader.setVec3("lightColor",1.0, 1.0, 1.0);
 
-
 	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window)) {
 
@@ -148,12 +142,12 @@ int main()
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f); //cor de fundo
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Limpa o buffer de cor
 
+		// Matriz de view
 		glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
-		glm::mat4 projection = glm::perspective(glm::radians(fov),
-																						(float)WIDTH / HEIGHT,
-																						0.1f, 100.0f);
+		 //Matriz de projeção
+		glm::mat4 projection = glm::perspective(glm::radians(fov), (float)WIDTH / HEIGHT, 0.1f, 100.0f);
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
 		glLineWidth(10);
@@ -162,7 +156,7 @@ int main()
 		float angle = (GLfloat)glfwGetTime();
 
 		for (size_t i = 0; i < NUM_OBJECTS; i++) {
-			objects[i].model = glm::mat4(1); //matriz identidade
+			objects[i].model = glm::mat4(1);
 			objects[i].model = glm::scale(objects[i].model, glm::vec3(objects[i].scale, objects[i].scale, objects[i].scale));
 			objects[i].model = glm::translate(objects[i].model, glm::vec3(objects[i].offsetX, objects[i].offsetY, objects[i].offsetZ));
 
@@ -183,14 +177,13 @@ int main()
 			glDrawArrays(GL_TRIANGLES, 0, objects[i].nVertices);
 		}
 
-		
 		//Atualizar a matriz de view
 		//Matriz de view
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront,cameraUp);
 		glUniformMatrix4fv(glGetUniformLocation(shader.ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		
 		//Propriedades da câmera
-		shader.setVec3("cameraPos",cameraPos.x, cameraPos.y, cameraPos.z);
+		shader.setVec3("cameraPos", cameraPos.x, cameraPos.y, cameraPos.z);
 
 		// Troca os buffers da tela
 		glfwSwapBuffers(window);
@@ -550,21 +543,11 @@ Material loadMTL(const std::string& filename) {
         std::string key;
         iss >> key;
         
-        if (key == "Ka") {
-            float r, g, b;
-            iss >> r >> g >> b;
-            mat.Ka = glm::vec3(r, g, b);
-        } else if (key == "Ks") {
-            float r, g, b;
-            iss >> r >> g >> b;
-            mat.Ks = glm::vec3(r, g, b);
-        } else if (key == "Ns") {
-            float ns;
-            iss >> ns;
-            mat.Ns = ns;
-        } else if (key == "map_Kd") {
-            iss >> mat.map_Kd;
-        }
+      if (key == "Ka") iss >> mat.Ka.r >> mat.Ka.g >> mat.Ka.b;
+			else if (key == "Kd") iss >> mat.Kd.r >> mat.Kd.g >> mat.Kd.b;
+			else if (key == "Ks") iss >> mat.Ks.r >> mat.Ks.g >> mat.Ks.b;
+			else if (key == "Ns") iss >> mat.Ns;
+			else if (key == "map_Kd") iss >> mat.map_Kd;
     }
     
     return mat;

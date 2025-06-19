@@ -1,0 +1,13 @@
+# Blender 4.0.0 MTL File: 'convert_ed8e3aac-6d4b-4f24-95bf-dfbbc2195e92.blend'
+# www.blender.org
+
+newmtl mat_ed8e3aac-6d4b-4f24-95bf-dfbbc2195e92
+Ns 10.000000       # shininess (q) do Phong
+Ka 0.200000 0.200000 0.200000    # coeficiente ambiente (ka)
+Kd 0.500000 0.500000 0.500000    # coeficiente difuso  (kd)
+Ks 0.500000 0.500000 0.500000    # coeficiente especular (ks)
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000      # índice de refração (optical density)
+d 1.000000
+illum 2
+map_Kd texture.jpeg
