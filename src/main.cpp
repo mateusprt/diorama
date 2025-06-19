@@ -13,6 +13,9 @@ using namespace std;
 // Protótipos das funções
 void initializeGLFW();
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void processInput(GLFWwindow *window);
 int setupGeometry();
 int loadSimpleOBJ(string filePATH, int &nVertices);
 GLuint loadTexture(string filePath, int &width, int &height);
@@ -23,9 +26,21 @@ bool rotateX=false, rotateY=false, rotateZ=false;
 const int NUM_OBJECTS = 2;
 
 //Variáveis globais da câmera 
-glm::vec3 cameraPos = glm::vec3(1.5f,0.0f,10.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f,0.0,-5.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f,1.0f,0.0f); 
+glm::vec3 cameraPos = glm::vec3(1.5f, 0.3f,10.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f,0.0,-1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f,1.0f,0.0f);
+
+//–– tempo para velocidade constante ––
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
+//–– mouse ––
+float yaw   = -90.0f; // inicial apontando no -Z
+float pitch =   0.0f;
+float lastX =  WIDTH  / 2.0f;
+float lastY =  HEIGHT / 2.0f;
+bool  firstMouse = true;
+float fov =  45.0f;
 
 struct Object {
 	GLuint VAO; //Índice do buffer de geometria
@@ -72,6 +87,9 @@ int main()
 	// Compilando e buildando o programa de shader
 	Shader shader(VERTEX_SHADER_PATH,FRAGMENT_SHADER_PATH);
 
+	GLint viewLoc = glGetUniformLocation(shader.ID, "view");	
+	GLint projLoc = glGetUniformLocation(shader.ID, "projection");
+
 	for (size_t i = 0; i < NUM_OBJECTS; i++) {
 		objects[i].VAO = loadSimpleOBJ(OBJ_PATH, objects[i].nVertices);
 		int texWidth,texHeight;
@@ -94,7 +112,9 @@ int main()
 	glUniformMatrix4fv(glGetUniformLocation(shader.ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
 	
   //Matriz de projeção
-	glm::mat4 projection = glm::perspective(glm::radians(39.6f),(float)WIDTH/HEIGHT,0.1f,100.0f);
+	/* glm::mat4 projection = glm::perspective(glm::radians(39.6f),(float)WIDTH/HEIGHT,0.1f,100.0f);
+	glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection)); */
+	 glm::mat4 projection = glm::perspective(glm::radians(fov), (float)WIDTH/HEIGHT, 0.1f, 100.0f);
 	glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
 	//Buffer de textura no shader
@@ -115,13 +135,26 @@ int main()
 
 
 	// Loop da aplicação - "game loop"
-	while (!glfwWindowShouldClose(window))
-	{
+	while (!glfwWindowShouldClose(window)) {
+
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+		processInput(window);
+
 		// Checa se houveram eventos de input (key pressed, mouse moved etc.) e chama as funções de callback correspondentes
 		glfwPollEvents();
 
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f); //cor de fundo
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Limpa o buffer de cor
+
+		glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+
+		glm::mat4 projection = glm::perspective(glm::radians(fov),
+																						(float)WIDTH / HEIGHT,
+																						0.1f, 100.0f);
+		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
 		glLineWidth(10);
 		glPointSize(20);
@@ -183,6 +216,13 @@ void initializeGLFW() {
 	// Fazendo o registro da função de callback para a janela GLFW
 	glfwSetKeyCallback(window, key_callback);
 
+	// Desabilita cursor e captura movimento
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	// Callback de mouse
+	glfwSetCursorPosCallback(window, mouse_callback);
+	// Callback de scroll (para zoom)
+	glfwSetScrollCallback(window, scroll_callback);
+
 	// GLAD: carrega todos os ponteiros d funções da OpenGL
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		std::cout << "Failed to initialize GLAD" << std::endl;
@@ -198,8 +238,7 @@ void initializeGLFW() {
 // Função de callback de teclado - só pode ter uma instância (deve ser estática se
 // estiver dentro de uma classe) - É chamada sempre que uma tecla for pressionada
 // ou solta via GLFW
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
-{
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode) {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
 
@@ -221,7 +260,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		rotateZ = true;
 	}
 
-	if ((key == GLFW_KEY_W || key == GLFW_KEY_UP) && action == GLFW_PRESS) {
+	float currentFrame = glfwGetTime();
+	deltaTime = currentFrame - lastFrame;
+	lastFrame = currentFrame;
+	float speed = 5.0f * deltaTime;
+
+	/* if ((key == GLFW_KEY_W || key == GLFW_KEY_UP) && action == GLFW_PRESS) {
 		objects[selectedObject].offsetY += 0.5f;
 	}
 	if ((key == GLFW_KEY_S || key == GLFW_KEY_DOWN) && action == GLFW_PRESS) {
@@ -245,7 +289,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 	if ((key == GLFW_KEY_G || key == GLFW_KEY_RIGHT) && action == GLFW_PRESS) {
 		objects[selectedObject].scale += 0.25f;
-	}
+	} */
 
 	if (key == GLFW_KEY_1 && action == GLFW_PRESS) {
 		selectedObject = 0;
@@ -253,6 +297,51 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_2 && action == GLFW_PRESS) {
 		selectedObject = 1;
 	}
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+  if (firstMouse) {
+    lastX = xpos; lastY = ypos;
+    firstMouse = false;
+  }
+  float xoffset = xpos - lastX;
+  float yoffset = lastY - ypos; // invertido
+  lastX = xpos; lastY = ypos;
+
+  const float sensitivity = 0.1f;
+  xoffset *= sensitivity;
+  yoffset *= sensitivity;
+
+  yaw   += xoffset;
+  pitch += yoffset;
+  pitch = glm::clamp(pitch, -89.0f, 89.0f);
+
+  glm::vec3 front;
+  front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+  front.y = sin(glm::radians(pitch));
+  front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+  cameraFront = glm::normalize(front);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+  fov -= (float)yoffset;
+  fov = glm::clamp(fov,  1.0f, 45.0f);
+}
+
+void processInput(GLFWwindow *window) {
+	float speed = 5.0f * deltaTime;
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			cameraPos += speed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			cameraPos -= speed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * speed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * speed;
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+			cameraPos -= cameraUp * speed;
+	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+			cameraPos += cameraUp * speed;
 }
 
 int loadSimpleOBJ(string filePath, int &nVertices)
