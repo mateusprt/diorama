@@ -8,22 +8,7 @@
 
 using namespace std;
 
-// GLAD
-#include <glad/glad.h>
-
-// GLFW
-#include <GLFW/glfw3.h>
-
-//GLM
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-//STB_IMAGE
-#include <stb_image/stb_image.h>
-
-//Classe gerenciadora de shaders
-#include "Shader.h"
+#include "Dependencies.h"
 
 // Protótipos das funções
 void initializeGLFW();
@@ -34,21 +19,25 @@ GLuint loadTexture(string filePath, int &width, int &height);
 
 // Dimensões da janela (pode ser alterado em tempo de execução)
 const GLuint WIDTH = 1000, HEIGHT = 1000;
-
 bool rotateX=false, rotateY=false, rotateZ=false;
+const int NUM_OBJECTS = 2;
 
 //Variáveis globais da câmera 
-glm::vec3 cameraPos = glm::vec3(0.0f,0.0f,3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f,0.0,-1.0f);
+glm::vec3 cameraPos = glm::vec3(1.5f,0.0f,10.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f,0.0,-5.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f,1.0f,0.0f); 
 
-struct Object
-{
+struct Object {
 	GLuint VAO; //Índice do buffer de geometria
 	GLuint texID; //Identificador da textura carregada
 	int nVertices; //nro de vértices
 	glm::mat4 model; //matriz de transformações do objeto
 	float ka, kd, ks; //coeficientes de iluminação - material do objeto
+
+	float offsetX = 0.0f;
+	float offsetY = 0.0f;
+	float offsetZ = 0.0f;
+	float scale = 1.0f;
 };
 
 struct Material {
@@ -58,16 +47,17 @@ struct Material {
     std::string map_Kd; // caminho da textura difusa
 };
 
-Material loadMTL(const string& mtlPath);
 
 const GLchar* VERTEX_SHADER_PATH = "../shaders/phong.vs";
 const GLchar* FRAGMENT_SHADER_PATH = "../shaders/phong.fs";
 
-const string OBJ_PATH = "../assets/models/aratwearingabackpack/obj/model.obj";
-const string TEXTURE_PATH = "../assets/models/aratwearingabackpack/textures/texture_1.jpeg";
-const string OBJ_MTL_PATH = "../assets/models/aratwearingabackpack/material/model.mtl";
+const string OBJ_PATH = "../assets/models/rat/model.obj";
+const string TEXTURE_PATH = "../assets/models/rat/texture.jpeg";
 
 GLFWwindow* window;
+
+Object objects[NUM_OBJECTS];
+int selectedObject = 0;
 
 int main()
 {
@@ -82,24 +72,25 @@ int main()
 	// Compilando e buildando o programa de shader
 	Shader shader(VERTEX_SHADER_PATH,FRAGMENT_SHADER_PATH);
 
-	Object obj;
-	obj.VAO = loadSimpleOBJ(OBJ_PATH,obj.nVertices);
-	
-	int texWidth,texHeight;
-	obj.texID = loadTexture(TEXTURE_PATH,texWidth,texHeight);
+	for (size_t i = 0; i < NUM_OBJECTS; i++) {
+		objects[i].VAO = loadSimpleOBJ(OBJ_PATH, objects[i].nVertices);
+		int texWidth,texHeight;
+		objects[i].texID = loadTexture(TEXTURE_PATH, texWidth, texHeight);
+	}
 
-	Material mat = loadMTL(OBJ_MTL_PATH);
+	objects[1].offsetX = 3.0f;
 
-	glUseProgram(shader.ID);
+	glUseProgram(shader.ID); 
 
-	//Matriz de modelo
-	glm::mat4 model = glm::mat4(1); //matriz identidade;
+	// Matriz identidade; //posição inicial do obj no mundo
+	glm::mat4 model = glm::mat4(1);
 	GLint modelLoc = glGetUniformLocation(shader.ID, "model");
 	model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
+	// relacionado à câmera
 	//Matriz de view
-	glm::mat4 view = glm::lookAt(cameraPos,glm::vec3(0.0f,0.0f,0.0f),cameraUp);
+	glm::mat4 view = glm::lookAt(cameraPos, glm::vec3(0.0f,0.0f,0.0f), cameraUp);
 	glUniformMatrix4fv(glGetUniformLocation(shader.ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
 	
   //Matriz de projeção
@@ -108,11 +99,15 @@ int main()
 
 	//Buffer de textura no shader
 	glUniform1i(glGetUniformLocation(shader.ID, "texBuffer"), 0);
-	glEnable(GL_DEPTH_TEST);
+	GLint normalMatLoc = glGetUniformLocation(shader.ID, "normalMatrix");
 
-	shader.setVec3("Ka", mat.Ka.x, mat.Ka.y, mat.Ka.z);
-	shader.setVec3("Ks", mat.Ks.x, mat.Ks.y, mat.Ks.z);
-	shader.setFloat("q", mat.Ns);
+	glEnable(GL_DEPTH_TEST);
+	glActiveTexture(GL_TEXTURE0);
+
+	shader.setFloat("ka",0.2);
+	shader.setFloat("ks", 0.5);
+	shader.setFloat("kd", 0.5);
+	shader.setFloat("q", 10.0);
 
 	//Propriedades da fonte de luz
 	shader.setVec3("lightPos",-2.0, 10.0, 3.0);
@@ -133,40 +128,46 @@ int main()
 
 		float angle = (GLfloat)glfwGetTime();
 
-		obj.model = glm::mat4(1); //matriz identidade 
-		
-		if (rotateX) {
-			obj.model = glm::rotate(obj.model, angle, glm::vec3(1.0f, 0.0f, 0.0f));	
-		} else if (rotateY) {
-			obj.model = glm::rotate(obj.model, angle, glm::vec3(0.0f, 1.0f, 0.0f));
-		} else if (rotateZ) {
-			obj.model = glm::rotate(obj.model, angle, glm::vec3(0.0f, 0.0f, 1.0f));
+		for (size_t i = 0; i < NUM_OBJECTS; i++) {
+			objects[i].model = glm::mat4(1); //matriz identidade
+			objects[i].model = glm::scale(objects[i].model, glm::vec3(objects[i].scale, objects[i].scale, objects[i].scale));
+			objects[i].model = glm::translate(objects[i].model, glm::vec3(objects[i].offsetX, objects[i].offsetY, objects[i].offsetZ));
+
+			if (rotateX) {
+			objects[selectedObject].model = glm::rotate(objects[selectedObject].model, angle, glm::vec3(1.0f, 0.0f, 0.0f));
+			} else if (rotateY) {
+				objects[selectedObject].model = glm::rotate(objects[selectedObject].model, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+			} else if (rotateZ) {
+				objects[selectedObject].model = glm::rotate(objects[selectedObject].model, angle, glm::vec3(0.0f, 0.0f, 1.0f));
+			}
+
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(objects[i].model));
+
+			// Chamada de desenho - drawcall
+			// Poligono Preenchido - GL_TRIANGLES
+			glBindVertexArray(objects[i].VAO);
+			glBindTexture(GL_TEXTURE_2D, objects[i].texID);
+			glDrawArrays(GL_TRIANGLES, 0, objects[i].nVertices);
 		}
 
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(obj.model));
 		
 		//Atualizar a matriz de view
 		//Matriz de view
-		view = glm::lookAt(cameraPos,cameraPos + cameraFront,cameraUp);
+		view = glm::lookAt(cameraPos, cameraPos + cameraFront,cameraUp);
 		glUniformMatrix4fv(glGetUniformLocation(shader.ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		
 		//Propriedades da câmera
 		shader.setVec3("cameraPos",cameraPos.x, cameraPos.y, cameraPos.z);
-		
-		// Chamada de desenho - drawcall
-		// Poligono Preenchido - GL_TRIANGLES
-		glBindVertexArray(obj.VAO);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D,obj.texID);
-		shader.setInt("diffuseTexture", 0);
-		glDrawArrays(GL_TRIANGLES, 0, obj.nVertices);
-
 
 		// Troca os buffers da tela
 		glfwSwapBuffers(window);
 	}
+
+	for (size_t i = 0; i < NUM_OBJECTS; i++) {
+		// Desalocando os buffers
+		glDeleteVertexArrays(1, &objects[i].VAO);
+	}
 	
-	glDeleteVertexArrays(1, &obj.VAO); //desalocar os buffers
 	glfwTerminate();
 	return 0;
 }
@@ -202,45 +203,55 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
 
-	if (key == GLFW_KEY_X && action == GLFW_PRESS)
-	{
+	if (key == GLFW_KEY_X && action == GLFW_PRESS) {
 		rotateX = true;
 		rotateY = false;
 		rotateZ = false;
 	}
 
-	if (key == GLFW_KEY_Y && action == GLFW_PRESS)
-	{
+	if (key == GLFW_KEY_Y && action == GLFW_PRESS) {
 		rotateX = false;
 		rotateY = true;
 		rotateZ = false;
 	}
 
-	if (key == GLFW_KEY_Z && action == GLFW_PRESS)
-	{
+	if (key == GLFW_KEY_Z && action == GLFW_PRESS) {
 		rotateX = false;
 		rotateY = false;
 		rotateZ = true;
 	}
 
-	//Verifica a movimentação da câmera
-	float cameraSpeed = 0.05f;
+	if ((key == GLFW_KEY_W || key == GLFW_KEY_UP) && action == GLFW_PRESS) {
+		objects[selectedObject].offsetY += 0.5f;
+	}
+	if ((key == GLFW_KEY_S || key == GLFW_KEY_DOWN) && action == GLFW_PRESS) {
+		objects[selectedObject].offsetY -= 0.5f;
+	}
+	if ((key == GLFW_KEY_A || key == GLFW_KEY_LEFT) && action == GLFW_PRESS) {
+		objects[selectedObject].offsetX -= 0.5f;
+	}
+	if ((key == GLFW_KEY_D || key == GLFW_KEY_RIGHT) && action == GLFW_PRESS) {
+		objects[selectedObject].offsetX += 0.5f;
+	}
+	if ((key == GLFW_KEY_Q || key == GLFW_KEY_LEFT) && action == GLFW_PRESS) {
+		objects[selectedObject].offsetZ -= 0.5f;
+	}
+	if ((key == GLFW_KEY_E || key == GLFW_KEY_RIGHT) && action == GLFW_PRESS) {
+		objects[selectedObject].offsetZ += 0.5f;
+	}
 
-	if ((key == GLFW_KEY_W || key == GLFW_KEY_UP) && action == GLFW_PRESS)
-	{
-		cameraPos += cameraSpeed * cameraFront;
+	if ((key == GLFW_KEY_F || key == GLFW_KEY_LEFT) && action == GLFW_PRESS) {
+		objects[selectedObject].scale -= 0.25f;
 	}
-	if ((key == GLFW_KEY_S || key == GLFW_KEY_DOWN) && action == GLFW_PRESS)
-	{
-		cameraPos -= cameraSpeed * cameraFront;
+	if ((key == GLFW_KEY_G || key == GLFW_KEY_RIGHT) && action == GLFW_PRESS) {
+		objects[selectedObject].scale += 0.25f;
 	}
-	if ((key == GLFW_KEY_A || key == GLFW_KEY_LEFT) && action == GLFW_PRESS)
-	{
-		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+
+	if (key == GLFW_KEY_1 && action == GLFW_PRESS) {
+		selectedObject = 0;
 	}
-	if ((key == GLFW_KEY_D || key == GLFW_KEY_RIGHT) && action == GLFW_PRESS)
-	{
-		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	if (key == GLFW_KEY_2 && action == GLFW_PRESS) {
+		selectedObject = 1;
 	}
 }
 

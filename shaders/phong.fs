@@ -6,8 +6,7 @@ in vec3 scaledNormal;
 in vec3 fragPos;
 
 //Propriedades da superficie
-uniform vec3 ka, ks;
-uniform float kd, q;
+uniform float ka, kd, ks, q;
 
 //Propriedades da fonte de luz
 uniform vec3 lightPos, lightColor;
@@ -24,6 +23,7 @@ void main()
 
     //Coeficiente luz ambiente
     vec3 ambient = ka * lightColor;
+
 
     //Coeficiente reflexão difusa
     vec3 diffuse;
