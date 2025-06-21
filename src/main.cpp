@@ -41,14 +41,15 @@ int setupGeometry();
 int loadSimpleOBJ(string filePATH, int &nVertices);
 GLuint loadTexture(string filePath, int &width, int &height);
 Material loadMTL(const std::string& filename);
+GLuint generateFloor();
 
 // Dimensões da janela (pode ser alterado em tempo de execução)
 const GLuint WIDTH = 1000, HEIGHT = 1000;
 bool rotateX=false, rotateY=false, rotateZ=false;
-const int NUM_OBJECTS = 2;
+const int NUM_OBJECTS = 3;
 
 //Variáveis globais da câmera 
-glm::vec3 cameraPos = glm::vec3(1.5f, 0.3f, 7.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 1.1f, 8.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f,0.0,-1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f,1.0f,0.0f);
 
@@ -102,7 +103,10 @@ int main()
 		mats[i] = loadMTL(MTL_PATH);
 	}
 
-	objects[1].offsetX = 2.0f;
+	// espalha os três modelos na cena
+	objects[0].offsetX = -1.0f;
+	objects[1].offsetX =  0.0f;
+	objects[2].offsetX =  1.0f;
 
 	glUseProgram(shader.ID); 
 
@@ -127,6 +131,10 @@ int main()
 	//Propriedades da fonte de luz
 	shader.setVec3("lightPos",-2.0, 10.0, 3.0);
 	shader.setVec3("lightColor",1.0, 1.0, 1.0);
+
+	int floorW, floorH;
+  GLuint floorTexID = loadTexture("../assets/models/floor/concrete.jpg", floorW, floorH);
+	GLuint floorVAO = generateFloor();
 
 	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window)) {
@@ -153,9 +161,32 @@ int main()
 		glLineWidth(10);
 		glPointSize(20);
 
-		float angle = (GLfloat)glfwGetTime();
+		// desenhando o chão
+		// Modelo do chão: sem translação ou escala extra (já está em –5…+5)
+		glm::mat4 floorModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.01f, 0.0f));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(floorModel));
+		// normalMatrix para piso (na inclinação identidade, fica mat3(1))
+		glm::mat3 nmFloor = glm::mat3(1.0f);
+		glUniformMatrix3fv(normalMatLoc, 1, GL_FALSE, glm::value_ptr(nmFloor));
 
+		// coeficientes do chão (diferentes dos ratos) TODO: parametrizá-los
+		shader.setFloat("ka", 0.1f);
+		shader.setFloat("kd", 0.8f);
+		shader.setFloat("ks", 0.2f);
+		shader.setFloat("q",  5.0f);
+
+		// bind do VAO do chão
+		glBindVertexArray(floorVAO);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, floorTexID);
+
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
+
+		// desenhando os ratos
+		float angle = (GLfloat)glfwGetTime();
 		for (size_t i = 0; i < NUM_OBJECTS; i++) {
+			objects[i].offsetY = 0.45f; // ajuste para o objeto "pisar" no chão
 			objects[i].model = glm::mat4(1);
 			objects[i].model = glm::scale(objects[i].model, glm::vec3(objects[i].scale, objects[i].scale, objects[i].scale));
 			objects[i].model = glm::translate(objects[i].model, glm::vec3(objects[i].offsetX, objects[i].offsetY, objects[i].offsetZ));
@@ -196,6 +227,50 @@ int main()
 	
 	glfwTerminate();
 	return 0;
+}
+
+GLuint generateFloor() {
+	
+	// 4 vértices de um quad no plano Y=0
+	float floorVerts[] = {
+		//  pos.x, pos.y, pos.z,   norm.x, norm.y, norm.z,   tex.s, tex.t
+		-5.0f, 0.0f, -5.0f,      0.0f, 1.0f, 0.0f,         0.0f, 0.0f,
+			5.0f, 0.0f, -5.0f,      0.0f, 1.0f, 0.0f,         5.0f, 0.0f,
+			5.0f, 0.0f,  5.0f,      0.0f, 1.0f, 0.0f,         5.0f, 5.0f,
+		-5.0f, 0.0f,  5.0f,      0.0f, 1.0f, 0.0f,         0.0f, 5.0f
+	};
+	unsigned int floorIdx[] = {
+		0,1,2,
+		0,2,3
+	};
+
+	GLuint floorVAO, floorVBO, floorEBO;
+	glGenVertexArrays(1, &floorVAO);
+	glGenBuffers(1, &floorVBO);
+	glGenBuffers(1, &floorEBO);
+
+	glBindVertexArray(floorVAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, floorVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(floorVerts), floorVerts, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, floorEBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(floorIdx), floorIdx, GL_STATIC_DRAW);
+
+	// pos (location = 0)
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	// cor (location = 1) — você pode passar uma cor fixa no shader ou usar finalColor
+	// textura (location = 2)
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+	// normal (location = 3)
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(3);
+
+	glBindVertexArray(0);
+	
+	return floorVAO;
 }
 
 void initializeGLFW() {
@@ -524,6 +599,7 @@ GLuint loadTexture(string filePath, int &width, int &height)
 	else
 	{
 		std::cout << "Failed to load texture " << filePath << std::endl;
+		std::cerr << "stb_image load error: " << stbi_failure_reason() << std::endl;
 	}
 
 	stbi_image_free(data);
