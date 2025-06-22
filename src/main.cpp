@@ -10,27 +10,9 @@ using namespace std;
 
 #include "Dependencies.h"
 
-struct Material {
-    glm::vec3 Ka;       // cor ambiente
-    glm::vec3 Ks;       // cor especular
-    glm::vec3 Kd;       // cor especular
-    float Ns;           // shininess (q)
-    std::string map_Kd; // caminho da textura difusa
-};
-
-struct Object {
-	GLuint VAO; //Índice do buffer de geometria
-	GLuint texID; //Identificador da textura carregada
-	int nVertices; //nro de vértices
-	glm::mat4 model; //matriz de transformações do objeto
-	float ka, kd, ks; //coeficientes de iluminação - material do objeto
-	Material mtl;
-
-	float offsetX = 0.0f;
-	float offsetY = 0.0f;
-	float offsetZ = 0.0f;
-	float scale = 1.0f;
-};
+// Classes
+#include "object.h"
+#include "material.h"
 
 // Protótipos das funções
 void initializeGLFW();
@@ -143,8 +125,6 @@ int main()
 	cheese.mtl = loadMTL("../assets/models/cheese/cheese.mtl");
 	int texWidth,texHeight;
 	cheese.texID = loadTexture("../assets/models/cheese/" + cheese.mtl.map_Kd, texWidth, texHeight);
-	/* cheese.offsetX = 5.0f;
-	cheese.offsetY = 0.50f; */
 	cheese.scale = 0.5f;
 
 	// Loop da aplicação - "game loop"
