@@ -249,6 +249,9 @@ int main()
 		// Desalocando os buffers
 		glDeleteVertexArrays(1, &objects[i].VAO);
 	}
+
+	glDeleteVertexArrays(1, &floorVAO);
+	glDeleteVertexArrays(1, &cheese.VAO);
 	
 	glfwTerminate();
 	return 0;
