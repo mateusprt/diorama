@@ -10,25 +10,26 @@ using namespace std;
 
 #include "Dependencies.h"
 
-struct Object {
-	GLuint VAO; //Índice do buffer de geometria
-	GLuint texID; //Identificador da textura carregada
-	int nVertices; //nro de vértices
-	glm::mat4 model; //matriz de transformações do objeto
-	float ka, kd, ks; //coeficientes de iluminação - material do objeto
-
-	float offsetX = 0.0f;
-	float offsetY = 0.0f;
-	float offsetZ = 0.0f;
-	float scale = 1.0f;
-};
-
 struct Material {
     glm::vec3 Ka;       // cor ambiente
     glm::vec3 Ks;       // cor especular
     glm::vec3 Kd;       // cor especular
     float Ns;           // shininess (q)
     std::string map_Kd; // caminho da textura difusa
+};
+
+struct Object {
+	GLuint VAO; //Índice do buffer de geometria
+	GLuint texID; //Identificador da textura carregada
+	int nVertices; //nro de vértices
+	glm::mat4 model; //matriz de transformações do objeto
+	float ka, kd, ks; //coeficientes de iluminação - material do objeto
+	Material mtl;
+
+	float offsetX = 0.0f;
+	float offsetY = 0.0f;
+	float offsetZ = 0.0f;
+	float scale = 1.0f;
 };
 
 // Protótipos das funções
@@ -76,7 +77,6 @@ const string MTL_PATH = "../assets/models/rat/model_1.mtl";
 GLFWwindow* window;
 
 Object objects[NUM_OBJECTS];
-Material mats[NUM_OBJECTS];
 
 int selectedObject = 0;
 
@@ -100,7 +100,6 @@ int main()
 		objects[i].VAO = loadSimpleOBJ(OBJ_PATH, objects[i].nVertices);
 		int texWidth,texHeight;
 		objects[i].texID = loadTexture(TEXTURE_PATH, texWidth, texHeight);
-		mats[i] = loadMTL(MTL_PATH);
 	}
 
 	// espalha os três modelos na cena
