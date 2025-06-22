@@ -42,6 +42,7 @@ foreach(EXERCISE ${EXERCISES})
       src/graphics/texture.cpp
       src/graphics/material.cpp
       src/scene/object.cpp
+      src/scene/camera.cpp
       src/${EXERCISE}.cpp
       common/glad.c
       common/Shader.cpp

@@ -13,6 +13,7 @@ using namespace std;
 // Classes
 #include "object.h"
 #include "material.h"
+#include "camera.h"
 
 // Protótipos das funções
 void initializeGLFW();
@@ -32,10 +33,11 @@ const GLuint WIDTH = 1000, HEIGHT = 1000;
 bool rotateX=false, rotateY=false, rotateZ=false;
 const int NUM_OBJECTS = 3;
 
-//Variáveis globais da câmera 
+//Variáveis globais da câmera
 glm::vec3 cameraPos = glm::vec3(0.0f, 1.1f, 8.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f,0.0,-1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f,1.0f,0.0f);
+Camera camera = Camera(cameraPos, cameraFront, cameraUp);
 
 //–– tempo para velocidade constante ––
 float deltaTime = 0.0f;
@@ -142,7 +144,7 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Limpa o buffer de cor
 
 		// Matriz de view
-		glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		glm::mat4 view = glm::lookAt(camera.pos, camera.pos + camera.front, camera.up);
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
 		 //Matriz de projeção
@@ -215,11 +217,11 @@ int main()
 
 		//Atualizar a matriz de view
 		//Matriz de view
-		view = glm::lookAt(cameraPos, cameraPos + cameraFront,cameraUp);
+		view = camera.getViewMatrix();//::lookAt(cameraPos, cameraPos + cameraFront,cameraUp);
 		glUniformMatrix4fv(glGetUniformLocation(shader.ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		
 		//Propriedades da câmera
-		shader.setVec3("cameraPos", cameraPos.x, cameraPos.y, cameraPos.z);
+		shader.setVec3("cameraPos", camera.pos.x, camera.pos.y, camera.pos.z);
 
 		// Troca os buffers da tela
 		glfwSwapBuffers(window);
@@ -404,7 +406,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
   front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
   front.y = sin(glm::radians(pitch));
   front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-  cameraFront = glm::normalize(front);
+  camera.front = glm::normalize(front);
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
@@ -415,17 +417,17 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 void processInput(GLFWwindow *window) {
 	float speed = 5.0f * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-			cameraPos += speed * cameraFront;
+			camera.pos += speed * camera.front;
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-			cameraPos -= speed * cameraFront;
+			camera.pos -= speed * camera.front;
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-			cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * speed;
+			camera.pos -= glm::normalize(glm::cross(camera.front, camera.up)) * speed;
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-			cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * speed;
+			camera.pos += glm::normalize(glm::cross(camera.front, camera.up)) * speed;
 	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-			cameraPos -= cameraUp * speed;
+			camera.pos -= camera.up * speed;
 	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-			cameraPos += cameraUp * speed;
+			camera.pos += camera.up * speed;
 }
 
 int loadSimpleOBJ(string filePath, int &nVertices)
