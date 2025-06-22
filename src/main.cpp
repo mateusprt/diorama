@@ -131,9 +131,20 @@ int main()
 	shader.setVec3("lightPos",-2.0, 10.0, 3.0);
 	shader.setVec3("lightColor",1.0, 1.0, 1.0);
 
+	// chão
 	int floorW, floorH;
   GLuint floorTexID = loadTexture("../assets/models/floor/concrete.jpg", floorW, floorH);
 	GLuint floorVAO = generateFloor();
+
+	//  queijo
+	Object cheese;
+	cheese.VAO = loadSimpleOBJ("../assets/models/cheese/cheese.obj", cheese.nVertices);
+	cheese.mtl = loadMTL("../assets/models/cheese/cheese.mtl");
+	int texWidth,texHeight;
+	cheese.texID = loadTexture("../assets/models/cheese/" + cheese.mtl.map_Kd, texWidth, texHeight);
+	cheese.offsetX = 5.0f;
+	cheese.offsetY = 0.50f;
+	cheese.scale = 0.5f;
 
 	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window)) {
@@ -168,12 +179,6 @@ int main()
 		glm::mat3 nmFloor = glm::mat3(1.0f);
 		glUniformMatrix3fv(normalMatLoc, 1, GL_FALSE, glm::value_ptr(nmFloor));
 
-		// coeficientes do chão (diferentes dos ratos) TODO: parametrizá-los
-		shader.setFloat("ka", 0.1f);
-		shader.setFloat("kd", 0.8f);
-		shader.setFloat("ks", 0.2f);
-		shader.setFloat("q",  5.0f);
-
 		// bind do VAO do chão
 		glBindVertexArray(floorVAO);
 		glActiveTexture(GL_TEXTURE0);
@@ -206,6 +211,20 @@ int main()
 			glBindTexture(GL_TEXTURE_2D, objects[i].texID);
 			glDrawArrays(GL_TRIANGLES, 0, objects[i].nVertices);
 		}
+
+		// desenhando o queijo
+    glm::mat4 cheeseModel = glm::mat4(1.0f);
+		cheeseModel = glm::scale(cheeseModel, glm::vec3(cheese.scale));
+    cheeseModel = glm::translate(cheeseModel, glm::vec3(cheese.offsetX, cheese.offsetY, cheese.offsetZ)); // posicionando na cena
+
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(cheeseModel));
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, cheese.texID);
+    glBindVertexArray(cheese.VAO);
+
+    glDrawArrays(GL_TRIANGLES, 0, cheese.nVertices);
+
+    glBindVertexArray(0);
 
 		//Atualizar a matriz de view
 		//Matriz de view
@@ -457,46 +476,43 @@ int loadSimpleOBJ(string filePath, int &nVertices)
 				normals.push_back(normal);
 
 			}
-			else if (word == "f")
-			{
-				while (ssline >> word) 
-				{
-					int vi, ti, ni;
-					istringstream ss(word);
-    				std::string index;
+			else if (word == "f") {
+				// 1) junte todos os índices da face
+				vector<string> refs;
+				string ref;
+				while (ssline >> ref)
+						refs.push_back(ref);
 
-    				// Pega o índice do vértice
-    				std::getline(ss, index, '/');
-    				vi = std::stoi(index) - 1;  // Ajusta para índice 0
+				// 2) para cada triângulo (fan): [0,i,i+1]
+				for (size_t i = 1; i + 1 < refs.size(); ++i) {
+					string tri[3] = { refs[0], refs[i], refs[i+1] };
+					for (int k = 0; k < 3; ++k) {
+						// parse tri[k] no formato vi/ti/ni
+						istringstream ss(tri[k]);
+						int vi, ti, ni;
+						string idx;
+						getline(ss, idx, '/');  vi = stoi(idx) - 1;
+						getline(ss, idx, '/');  ti = stoi(idx) - 1;
+						getline(ss, idx);       ni = stoi(idx) - 1;
 
-    				// Pega o índice da coordenada de textura
-    				std::getline(ss, index, '/');
-    				ti = std::stoi(index) - 1;
+						// empurra pro vBuffer: posição, cor, UV, normal
+						vBuffer.push_back(vertices[vi].x);
+						vBuffer.push_back(vertices[vi].y);
+						vBuffer.push_back(vertices[vi].z);
 
-    				// Pega o índice da normal
-    				std::getline(ss, index);
-    				ni = std::stoi(index) - 1;
+						// cor fixa (ou sua cor do material)
+						vBuffer.push_back(color.r);
+						vBuffer.push_back(color.g);
+						vBuffer.push_back(color.b);
 
-					//Recuperando os vértices do indice lido
-					vBuffer.push_back(vertices[vi].x);
-					vBuffer.push_back(vertices[vi].y);
-					vBuffer.push_back(vertices[vi].z);
-					
-					//Atributo cor
-					vBuffer.push_back(color.r);
-					vBuffer.push_back(color.g);
-					vBuffer.push_back(color.b);
+						vBuffer.push_back(texCoords[ti].s);
+						vBuffer.push_back(texCoords[ti].t);
 
-					//Atributo coordenada de textura
-					vBuffer.push_back(texCoords[ti].s);
-					vBuffer.push_back(texCoords[ti].t);
-
-					//Atributo vetor normal
-					vBuffer.push_back(normals[ni].x);
-					vBuffer.push_back(normals[ni].y);
-					vBuffer.push_back(normals[ni].z);
-    			}
-				
+						vBuffer.push_back(normals[ni].x);
+						vBuffer.push_back(normals[ni].y);
+						vBuffer.push_back(normals[ni].z);
+					}
+				}
 			}
 		}
 
