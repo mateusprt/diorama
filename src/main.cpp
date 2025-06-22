@@ -42,6 +42,7 @@ int setupGeometry();
 int loadSimpleOBJ(string filePATH, int &nVertices);
 GLuint loadTexture(string filePath, int &width, int &height);
 Material loadMTL(const std::string& filename);
+glm::vec3 circularPath(float t, float radius, float height);
 GLuint generateFloor();
 
 // Dimensões da janela (pode ser alterado em tempo de execução)
@@ -142,8 +143,8 @@ int main()
 	cheese.mtl = loadMTL("../assets/models/cheese/cheese.mtl");
 	int texWidth,texHeight;
 	cheese.texID = loadTexture("../assets/models/cheese/" + cheese.mtl.map_Kd, texWidth, texHeight);
-	cheese.offsetX = 5.0f;
-	cheese.offsetY = 0.50f;
+	/* cheese.offsetX = 5.0f;
+	cheese.offsetY = 0.50f; */
 	cheese.scale = 0.5f;
 
 	// Loop da aplicação - "game loop"
@@ -213,9 +214,15 @@ int main()
 		}
 
 		// desenhando o queijo
+    float radius = 2.0f;                        // raio do círculo
+    float height = 0.45f;                       // altura fixa sobre o chão
+    glm::vec3 pos = circularPath(currentFrame, radius, height);
+    float speed = glm::radians(45.0f); 
+    float angleCheese = speed * currentFrame; // ângulo em radianos
     glm::mat4 cheeseModel = glm::mat4(1.0f);
-		cheeseModel = glm::scale(cheeseModel, glm::vec3(cheese.scale));
-    cheeseModel = glm::translate(cheeseModel, glm::vec3(cheese.offsetX, cheese.offsetY, cheese.offsetZ)); // posicionando na cena
+    cheeseModel = glm::translate(cheeseModel, pos); // curva
+    cheeseModel = glm::rotate   (cheeseModel, angleCheese, glm::vec3(0,1,0));
+    cheeseModel = glm::scale    (cheeseModel, glm::vec3(cheese.scale));
 
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(cheeseModel));
     glActiveTexture(GL_TEXTURE0);
@@ -245,6 +252,14 @@ int main()
 	
 	glfwTerminate();
 	return 0;
+}
+
+glm::vec3 circularPath(float t, float radius, float height) {
+	return glm::vec3(
+			radius * std::cos(t),
+			height,
+			radius * std::sin(t)
+	);
 }
 
 GLuint generateFloor() {
