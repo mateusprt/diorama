@@ -10,27 +10,11 @@ using namespace std;
 
 #include "Dependencies.h"
 
-struct Material {
-    glm::vec3 Ka;       // cor ambiente
-    glm::vec3 Ks;       // cor especular
-    glm::vec3 Kd;       // cor especular
-    float Ns;           // shininess (q)
-    std::string map_Kd; // caminho da textura difusa
-};
-
-struct Object {
-	GLuint VAO; //Índice do buffer de geometria
-	GLuint texID; //Identificador da textura carregada
-	int nVertices; //nro de vértices
-	glm::mat4 model; //matriz de transformações do objeto
-	float ka, kd, ks; //coeficientes de iluminação - material do objeto
-	Material mtl;
-
-	float offsetX = 0.0f;
-	float offsetY = 0.0f;
-	float offsetZ = 0.0f;
-	float scale = 1.0f;
-};
+// Classes
+#include "object.h"
+#include "material.h"
+#include "camera.h"
+#include "scene.h"
 
 // Protótipos das funções
 void initializeGLFW();
@@ -41,7 +25,7 @@ void processInput(GLFWwindow *window);
 int setupGeometry();
 int loadSimpleOBJ(string filePATH, int &nVertices);
 GLuint loadTexture(string filePath, int &width, int &height);
-Material loadMTL(const std::string& filename);
+//Material loadMTL(const std::string& filename);
 glm::vec3 circularPath(float t, float radius, float height);
 GLuint generateFloor();
 
@@ -50,10 +34,11 @@ const GLuint WIDTH = 1000, HEIGHT = 1000;
 bool rotateX=false, rotateY=false, rotateZ=false;
 const int NUM_OBJECTS = 3;
 
-//Variáveis globais da câmera 
+//Variáveis globais da câmera
 glm::vec3 cameraPos = glm::vec3(0.0f, 1.1f, 8.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f,0.0,-1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f,1.0f,0.0f);
+Camera camera = Camera(cameraPos, cameraFront, cameraUp);
 
 //–– tempo para velocidade constante ––
 float deltaTime = 0.0f;
@@ -77,7 +62,7 @@ const string MTL_PATH = "../assets/models/rat/model_1.mtl";
 
 GLFWwindow* window;
 
-Object objects[NUM_OBJECTS];
+vector<Object> objects;
 
 int selectedObject = 0;
 
@@ -93,22 +78,22 @@ int main()
 
 	// Compilando e buildando o programa de shader
 	Shader shader(VERTEX_SHADER_PATH,FRAGMENT_SHADER_PATH);
-
 	GLint viewLoc = glGetUniformLocation(shader.ID, "view");	
 	GLint projLoc = glGetUniformLocation(shader.ID, "projection");
 
+	glUseProgram(shader.ID);
+
+	Scene mySecene = Scene(shader);
+
 	for (size_t i = 0; i < NUM_OBJECTS; i++) {
-		objects[i].VAO = loadSimpleOBJ(OBJ_PATH, objects[i].nVertices);
-		int texWidth,texHeight;
-		objects[i].texID = loadTexture(TEXTURE_PATH, texWidth, texHeight);
+		Object obj = Object(OBJ_PATH, TEXTURE_PATH, MTL_PATH);
+		objects.push_back(obj);
 	}
 
 	// espalha os três modelos na cena
 	objects[0].offsetX = -1.0f;
 	objects[1].offsetX =  0.0f;
 	objects[2].offsetX =  1.0f;
-
-	glUseProgram(shader.ID); 
 
 	// Matriz identidade; //posição inicial do obj no mundo
 	glm::mat4 model = glm::mat4(1);
@@ -138,13 +123,11 @@ int main()
 	GLuint floorVAO = generateFloor();
 
 	//  queijo
-	Object cheese;
-	cheese.VAO = loadSimpleOBJ("../assets/models/cheese/cheese.obj", cheese.nVertices);
+	Object cheese = Object("../assets/models/cheese/cheese.obj", "../assets/models/cheese/texture.png", "../assets/models/cheese/cheese.mtl");
+	/* cheese.VAO = loadSimpleOBJ("../assets/models/cheese/cheese.obj", cheese.nVertices);
 	cheese.mtl = loadMTL("../assets/models/cheese/cheese.mtl");
 	int texWidth,texHeight;
-	cheese.texID = loadTexture("../assets/models/cheese/" + cheese.mtl.map_Kd, texWidth, texHeight);
-	/* cheese.offsetX = 5.0f;
-	cheese.offsetY = 0.50f; */
+	cheese.texID = loadTexture("../assets/models/cheese/" + cheese.mtl.map_Kd, texWidth, texHeight); */
 	cheese.scale = 0.5f;
 
 	// Loop da aplicação - "game loop"
@@ -162,7 +145,7 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Limpa o buffer de cor
 
 		// Matriz de view
-		glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		glm::mat4 view = glm::lookAt(camera.pos, camera.pos + camera.front, camera.up);
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
 		 //Matriz de projeção
@@ -235,11 +218,11 @@ int main()
 
 		//Atualizar a matriz de view
 		//Matriz de view
-		view = glm::lookAt(cameraPos, cameraPos + cameraFront,cameraUp);
+		view = camera.getViewMatrix();//::lookAt(cameraPos, cameraPos + cameraFront,cameraUp);
 		glUniformMatrix4fv(glGetUniformLocation(shader.ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		
 		//Propriedades da câmera
-		shader.setVec3("cameraPos", cameraPos.x, cameraPos.y, cameraPos.z);
+		shader.setVec3("cameraPos", camera.pos.x, camera.pos.y, camera.pos.z);
 
 		// Troca os buffers da tela
 		glfwSwapBuffers(window);
@@ -424,7 +407,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
   front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
   front.y = sin(glm::radians(pitch));
   front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-  cameraFront = glm::normalize(front);
+  camera.front = glm::normalize(front);
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
@@ -435,17 +418,17 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 void processInput(GLFWwindow *window) {
 	float speed = 5.0f * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-			cameraPos += speed * cameraFront;
+			camera.pos += speed * camera.front;
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-			cameraPos -= speed * cameraFront;
+			camera.pos -= speed * camera.front;
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-			cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * speed;
+			camera.pos -= glm::normalize(glm::cross(camera.front, camera.up)) * speed;
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-			cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * speed;
+			camera.pos += glm::normalize(glm::cross(camera.front, camera.up)) * speed;
 	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-			cameraPos -= cameraUp * speed;
+			camera.pos -= camera.up * speed;
 	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-			cameraPos += cameraUp * speed;
+			camera.pos += camera.up * speed;
 }
 
 int loadSimpleOBJ(string filePath, int &nVertices)

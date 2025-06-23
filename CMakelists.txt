@@ -25,6 +25,8 @@ include_directories(${CMAKE_SOURCE_DIR}/dependencies/glm)
 include_directories(${CMAKE_SOURCE_DIR}/dependencies/stb_image)
 include_directories(${CMAKE_SOURCE_DIR}/common)
 include_directories(${CMAKE_SOURCE_DIR}/common/shader)
+include_directories(${CMAKE_SOURCE_DIR}/src/include/graphics)
+include_directories(${CMAKE_SOURCE_DIR}/src/include/scenes)
 
 # Projeto
 set(EXERCISES
@@ -37,6 +39,11 @@ add_compile_options(-Wno-pragmas)
 foreach(EXERCISE ${EXERCISES})
     add_executable(
       ${EXERCISE} 
+      src/graphics/texture.cpp
+      src/graphics/material.cpp
+      src/scenes/object.cpp
+      src/scenes/camera.cpp
+      src/scenes/scene.cpp
       src/${EXERCISE}.cpp
       common/glad.c
       common/Shader.cpp
