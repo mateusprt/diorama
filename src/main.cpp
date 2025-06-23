@@ -14,6 +14,7 @@ using namespace std;
 #include "object.h"
 #include "material.h"
 #include "camera.h"
+#include "scene.h"
 
 // Protótipos das funções
 void initializeGLFW();
@@ -24,7 +25,7 @@ void processInput(GLFWwindow *window);
 int setupGeometry();
 int loadSimpleOBJ(string filePATH, int &nVertices);
 GLuint loadTexture(string filePath, int &width, int &height);
-Material loadMTL(const std::string& filename);
+//Material loadMTL(const std::string& filename);
 glm::vec3 circularPath(float t, float radius, float height);
 GLuint generateFloor();
 
@@ -61,7 +62,7 @@ const string MTL_PATH = "../assets/models/rat/model_1.mtl";
 
 GLFWwindow* window;
 
-Object objects[NUM_OBJECTS];
+vector<Object> objects;
 
 int selectedObject = 0;
 
@@ -77,22 +78,22 @@ int main()
 
 	// Compilando e buildando o programa de shader
 	Shader shader(VERTEX_SHADER_PATH,FRAGMENT_SHADER_PATH);
-
 	GLint viewLoc = glGetUniformLocation(shader.ID, "view");	
 	GLint projLoc = glGetUniformLocation(shader.ID, "projection");
 
+	glUseProgram(shader.ID);
+
+	Scene mySecene = Scene(shader);
+
 	for (size_t i = 0; i < NUM_OBJECTS; i++) {
-		objects[i].VAO = loadSimpleOBJ(OBJ_PATH, objects[i].nVertices);
-		int texWidth,texHeight;
-		objects[i].texID = loadTexture(TEXTURE_PATH, texWidth, texHeight);
+		Object obj = Object(OBJ_PATH, TEXTURE_PATH, MTL_PATH);
+		objects.push_back(obj);
 	}
 
 	// espalha os três modelos na cena
 	objects[0].offsetX = -1.0f;
 	objects[1].offsetX =  0.0f;
 	objects[2].offsetX =  1.0f;
-
-	glUseProgram(shader.ID); 
 
 	// Matriz identidade; //posição inicial do obj no mundo
 	glm::mat4 model = glm::mat4(1);
@@ -122,11 +123,11 @@ int main()
 	GLuint floorVAO = generateFloor();
 
 	//  queijo
-	Object cheese;
-	cheese.VAO = loadSimpleOBJ("../assets/models/cheese/cheese.obj", cheese.nVertices);
+	Object cheese = Object("../assets/models/cheese/cheese.obj", "../assets/models/cheese/texture.png", "../assets/models/cheese/cheese.mtl");
+	/* cheese.VAO = loadSimpleOBJ("../assets/models/cheese/cheese.obj", cheese.nVertices);
 	cheese.mtl = loadMTL("../assets/models/cheese/cheese.mtl");
 	int texWidth,texHeight;
-	cheese.texID = loadTexture("../assets/models/cheese/" + cheese.mtl.map_Kd, texWidth, texHeight);
+	cheese.texID = loadTexture("../assets/models/cheese/" + cheese.mtl.map_Kd, texWidth, texHeight); */
 	cheese.scale = 0.5f;
 
 	// Loop da aplicação - "game loop"

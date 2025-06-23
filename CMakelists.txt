@@ -26,7 +26,7 @@ include_directories(${CMAKE_SOURCE_DIR}/dependencies/stb_image)
 include_directories(${CMAKE_SOURCE_DIR}/common)
 include_directories(${CMAKE_SOURCE_DIR}/common/shader)
 include_directories(${CMAKE_SOURCE_DIR}/src/include/graphics)
-include_directories(${CMAKE_SOURCE_DIR}/src/include/scene)
+include_directories(${CMAKE_SOURCE_DIR}/src/include/scenes)
 
 # Projeto
 set(EXERCISES
@@ -41,8 +41,9 @@ foreach(EXERCISE ${EXERCISES})
       ${EXERCISE} 
       src/graphics/texture.cpp
       src/graphics/material.cpp
-      src/scene/object.cpp
-      src/scene/camera.cpp
+      src/scenes/object.cpp
+      src/scenes/camera.cpp
+      src/scenes/scene.cpp
       src/${EXERCISE}.cpp
       common/glad.c
       common/Shader.cpp
