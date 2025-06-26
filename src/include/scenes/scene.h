@@ -1,9 +1,14 @@
 #pragma once
 
 #include <vector>
+
 #include "object.h"
 #include "shader.h"
 #include "camera.h"
+#include "mouse.h"
+
+// GLFW
+#include <GLFW/glfw3.h>
 
 /**
  * @brief Gerencia a cena 3D: prepara recursos e desenha todos os objetos
@@ -19,8 +24,8 @@ public:
     ~Scene();
 
     /**
-     * @brief Prepara todos os recursos (shaders, texturas, meshes)
-     * Deve ser chamado uma vez na inicialização.
+     * @brief Prepara todos os recursos
+     * Deve ser chamado uma vez na inicialização - antes do "game loop".
      */
     void prepare();
 
@@ -28,10 +33,31 @@ public:
      * @brief Desenha a cena usando o shader e a câmera configurada
      * Deve ser chamado no loop principal de render.
      */
-    void draw();
+    void draw(GLFWwindow *window);
+
+    void processInput(GLFWwindow *window);
+
+    glm::vec3 circularPath(float t, float radius, float height);
+
+    void destroy();
+
+    GLuint generateFloor();
 
 private:
     std::vector<Object> mObjects;
     Camera              mCamera;
     Shader              mShader;
+    float               deltaTime;
+    float               lastFrame;
+    bool                rotateX;
+    bool                rotateY;
+    bool                rotateZ;
+    GLint               viewLoc;
+    GLint               projLoc;
+    GLint               modelLoc;
+    GLint               normalMatLoc;
+    int                 selectedObject;
+    Mouse               mouse;
+    GLuint              floorTexID;
+    GLuint              floorVAO;
 };
