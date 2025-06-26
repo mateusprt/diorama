@@ -1,7 +1,7 @@
 #include "scene.h"
 #include "camera.h"
-#include "floor.h"
 #include "mouse.h"
+#include "functions.h"
 
 // GLAD
 #include <glad/glad.h>
@@ -36,34 +36,38 @@ Scene::Scene(const Shader& shader)
 			)
 {
   selectedObject = 0;
+	rotateX = false;
+	rotateY = false;
+	rotateZ = false;
 }
 
 Scene::~Scene() = default;
 
 void Scene::prepare() {
-
-	GLint viewLoc = glGetUniformLocation(mShader.ID, "view");	
-	GLint projLoc = glGetUniformLocation(mShader.ID, "projection");
-
 	glUseProgram(mShader.ID);
 
+	viewLoc = glGetUniformLocation(mShader.ID, "view");	
+	projLoc = glGetUniformLocation(mShader.ID, "projection");
+
 	// chão
-	Floor floor = Floor("../assets/models/floor/concrete.jpg");
-	mObjects.push_back(floor);
+
+	int floorW, floorH;
+  floorTexID = loadTexture("../assets/models/floor/concrete.jpg", floorW, floorH);
+	floorVAO = generateFloor();
+
+	// ratos
+	const string OBJ_PATH = "../assets/models/rat/model.obj";
+	const string TEXTURE_PATH = "../assets/models/rat/texture.jpeg";
+	const string MTL_PATH = "../assets/models/rat/model.mtl";
+  for (size_t i = 0; i < 3; i++) {
+		Object obj = Object(OBJ_PATH, TEXTURE_PATH, MTL_PATH);
+		mObjects.push_back(obj);
+	}
 
 	//  queijo
 	Object cheese = Object("../assets/models/cheese/cheese.obj", "../assets/models/cheese/texture.png", "../assets/models/cheese/cheese.mtl");
 	cheese.scale = 0.5f;
 	mObjects.push_back(cheese);
-
-	// ratos
-	const string OBJ_PATH = "../assets/models/rat/model.obj";
-	const string TEXTURE_PATH = "../assets/models/rat/texture.jpeg";
-	const string MTL_PATH = "../assets/models/rat/model_1.mtl";
-  for (size_t i = 0; i < 3; i++) {
-		Object obj = Object(OBJ_PATH, TEXTURE_PATH, MTL_PATH);
-		mObjects.push_back(obj);
-	}
 
 	// espalha os três modelos de ratos na cena
 	mObjects[0].offsetX = -1.0f;
@@ -94,7 +98,7 @@ void Scene::prepare() {
 }
 
 void Scene::draw(GLFWwindow *window) {
-	// PAREI AQUI. CONTINUAR ELIMINANDO OS ERROS
+	glUseProgram(mShader.ID);
   float currentFrame = glfwGetTime();
 	deltaTime = currentFrame - lastFrame;
 	lastFrame = currentFrame;
@@ -129,16 +133,16 @@ void Scene::draw(GLFWwindow *window) {
 	glUniformMatrix3fv(normalMatLoc, 1, GL_FALSE, glm::value_ptr(nmFloor));
 
 	// bind do VAO do chão
-	glBindVertexArray(mObjects[0].VAO);
+	glBindVertexArray(floorVAO);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, mObjects[0].texID);
+	glBindTexture(GL_TEXTURE_2D, floorTexID);
 
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 
 	// desenhando os ratos
 	float angle = (GLfloat)glfwGetTime();
-	for (size_t i = 2 ; i < mObjects.size(); i++) {
+	for (size_t i = 0 ; i < mObjects.size()-1; i++) {
 		mObjects[i].offsetY = 0.45f; // ajuste para o objeto "pisar" no chão
 		mObjects[i].model = glm::mat4(1);
 		mObjects[i].model = glm::scale(mObjects[i].model, glm::vec3(mObjects[i].scale, mObjects[i].scale, mObjects[i].scale));
@@ -170,14 +174,13 @@ void Scene::draw(GLFWwindow *window) {
 	glm::mat4 cheeseModel = glm::mat4(1.0f);
 	cheeseModel = glm::translate(cheeseModel, pos); // curva
 	cheeseModel = glm::rotate   (cheeseModel, angleCheese, glm::vec3(0,1,0));
-	cheeseModel = glm::scale    (cheeseModel, glm::vec3(mObjects[1].scale));
+	cheeseModel = glm::scale    (cheeseModel, glm::vec3(mObjects[mObjects.size()-1].scale));
 
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(cheeseModel));
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, mObjects[1].texID);
-	glBindVertexArray(mObjects[1].VAO);
-
-	glDrawArrays(GL_TRIANGLES, 0, mObjects[1].nVertices);
+	glBindTexture(GL_TEXTURE_2D, mObjects[mObjects.size()-1].texID);
+	glBindVertexArray(mObjects[mObjects.size()-1].VAO);
+	glDrawArrays(GL_TRIANGLES, 0, mObjects[mObjects.size()-1].nVertices);
 
 	glBindVertexArray(0);
 
@@ -221,4 +224,47 @@ void Scene::destroy() {
 	for(int x = 0; x < mObjects.size(); x++) {
 		glDeleteVertexArrays(1, &mObjects[x].VAO);
 	}
+}
+
+GLuint Scene::generateFloor() {
+  // 4 vértices de um quad no plano Y=0
+	float floorVerts[] = {
+		//  pos.x, pos.y, pos.z,   norm.x, norm.y, norm.z,   tex.s, tex.t
+		-5.0f, 0.0f, -5.0f,      0.0f, 1.0f, 0.0f,         0.0f, 0.0f,
+			5.0f, 0.0f, -5.0f,      0.0f, 1.0f, 0.0f,         5.0f, 0.0f,
+			5.0f, 0.0f,  5.0f,      0.0f, 1.0f, 0.0f,         5.0f, 5.0f,
+		-5.0f, 0.0f,  5.0f,      0.0f, 1.0f, 0.0f,         0.0f, 5.0f
+	};
+	unsigned int floorIdx[] = {
+		0,1,2,
+		0,2,3
+	};
+
+	GLuint floorVAO, floorVBO, floorEBO;
+	glGenVertexArrays(1, &floorVAO);
+	glGenBuffers(1, &floorVBO);
+	glGenBuffers(1, &floorEBO);
+
+	glBindVertexArray(floorVAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, floorVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(floorVerts), floorVerts, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, floorEBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(floorIdx), floorIdx, GL_STATIC_DRAW);
+
+	// pos (location = 0)
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	// cor (location = 1) — você pode passar uma cor fixa no shader ou usar finalColor
+	// textura (location = 2)
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+	// normal (location = 3)
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(3);
+
+	glBindVertexArray(0);
+	
+	return floorVAO;
 }

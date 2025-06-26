@@ -58,7 +58,10 @@ const GLchar* FRAGMENT_SHADER_PATH = "../shaders/phong.fs";
 
 const string OBJ_PATH = "../assets/models/rat/model.obj";
 const string TEXTURE_PATH = "../assets/models/rat/texture.jpeg";
-const string MTL_PATH = "../assets/models/rat/model_1.mtl";
+const string MTL_PATH = "../assets/models/rat/model.mtl";
+
+#include <iostream>
+#include <unistd.h>
 
 GLFWwindow* window;
 
@@ -82,10 +85,7 @@ int main()
 
 	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window)) {
-
 		mySecene.draw(window);
-		// Troca os buffers da tela
-		glfwSwapBuffers(window);
 	}
 
 	mySecene.destroy();

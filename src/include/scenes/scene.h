@@ -41,6 +41,8 @@ public:
 
     void destroy();
 
+    GLuint generateFloor();
+
 private:
     std::vector<Object> mObjects;
     Camera              mCamera;
@@ -56,4 +58,6 @@ private:
     GLint               normalMatLoc;
     int                 selectedObject;
     Mouse               mouse;
+    GLuint              floorTexID;
+    GLuint              floorVAO;
 };
