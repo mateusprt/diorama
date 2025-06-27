@@ -35,8 +35,6 @@ public:
      */
     void draw(GLFWwindow *window);
 
-    void processInput(GLFWwindow *window);
-
     glm::vec3 circularPath(float t, float radius, float height);
 
     void destroy();

@@ -21,6 +21,7 @@ void initializeGLFW();
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void processInput(GLFWwindow *window);
 
 // Dimensões da janela (pode ser alterado em tempo de execução)
 const GLuint WIDTH = 1000, HEIGHT = 1000;
@@ -54,6 +55,9 @@ int main()
 
 	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window)) {
+		// Checa se houveram eventos de input (key pressed, mouse moved etc.) e chama as funções de callback correspondentes
+		glfwPollEvents();
+		processInput(window);
 		myScene->draw(window);
 	}
 
@@ -69,7 +73,7 @@ void initializeGLFW() {
 	glfwInit();
 
 	// Criação da janela GLFW
-	window = glfwCreateWindow(WIDTH, HEIGHT, "Diorama", nullptr, nullptr);
+	window = glfwCreateWindow(WIDTH, HEIGHT, "Banquete giratório", nullptr, nullptr);
 	glfwMakeContextCurrent(window);
 
 	// Fazendo o registro da função de callback para a janela GLFW
@@ -125,6 +129,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_2 && action == GLFW_PRESS) {
 		myScene->selectedObject = 1;
 	}
+	if (key == GLFW_KEY_3 && action == GLFW_PRESS) {
+		myScene->selectedObject = 2;
+	}
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
@@ -154,4 +161,20 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
   myScene->mouse.fov -= (float)yoffset;
   myScene->mouse.fov = glm::clamp(myScene->mouse.fov,  1.0f, 45.0f);
+}
+
+void processInput(GLFWwindow *window) {
+	float speed = 5.0f * myScene->deltaTime;
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			myScene->mCamera.pos += speed * myScene->mCamera.front;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			myScene->mCamera.pos -= speed * myScene->mCamera.front;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			myScene->mCamera.pos -= glm::normalize(glm::cross(myScene->mCamera.front, myScene->mCamera.up)) * speed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			myScene->mCamera.pos += glm::normalize(glm::cross(myScene->mCamera.front, myScene->mCamera.up)) * speed;
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+			myScene->mCamera.pos -= myScene->mCamera.up * speed;
+	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+			myScene->mCamera.pos += myScene->mCamera.up * speed;
 }

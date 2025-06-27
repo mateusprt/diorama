@@ -105,11 +105,6 @@ void Scene::draw(GLFWwindow *window) {
 	deltaTime = currentFrame - lastFrame;
 	lastFrame = currentFrame;
 
-	// Checa se houveram eventos de input (key pressed, mouse moved etc.) e chama as funções de callback correspondentes
-	glfwPollEvents();
-
-	processInput(window);
-
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f); //cor de fundo
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Limpa o buffer de cor
 
@@ -197,22 +192,6 @@ void Scene::draw(GLFWwindow *window) {
 
 	// Troca os buffers da tela
 	glfwSwapBuffers(window);
-}
-
-void Scene::processInput(GLFWwindow *window) {
-	float speed = 5.0f * deltaTime;
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-			mCamera.pos += speed * mCamera.front;
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-			mCamera.pos -= speed * mCamera.front;
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-			mCamera.pos -= glm::normalize(glm::cross(mCamera.front, mCamera.up)) * speed;
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-			mCamera.pos += glm::normalize(glm::cross(mCamera.front, mCamera.up)) * speed;
-	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-			mCamera.pos -= mCamera.up * speed;
-	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-			mCamera.pos += mCamera.up * speed;
 }
 
 glm::vec3 Scene::circularPath(float t, float radius, float height) {
