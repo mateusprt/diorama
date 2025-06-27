@@ -43,7 +43,6 @@ public:
 
     GLuint generateFloor();
 
-private:
     std::vector<Object> mObjects;
     Camera              mCamera;
     Shader              mShader;
@@ -60,4 +59,6 @@ private:
     Mouse               mouse;
     GLuint              floorTexID;
     GLuint              floorVAO;
+    float               lastX;
+    float               lastY;
 };

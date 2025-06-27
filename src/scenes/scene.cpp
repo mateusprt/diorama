@@ -39,6 +39,8 @@ Scene::Scene(const Shader& shader)
 	rotateX = false;
 	rotateY = false;
 	rotateZ = false;
+	lastX =  Constants::WINDOW_WIDTH  / 2.0f;
+	lastY =  Constants::WINDOW_HEIGHT  / 2.0f;
 }
 
 Scene::~Scene() = default;
@@ -102,10 +104,11 @@ void Scene::draw(GLFWwindow *window) {
   float currentFrame = glfwGetTime();
 	deltaTime = currentFrame - lastFrame;
 	lastFrame = currentFrame;
-	processInput(window);
 
 	// Checa se houveram eventos de input (key pressed, mouse moved etc.) e chama as funções de callback correspondentes
 	glfwPollEvents();
+
+	processInput(window);
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f); //cor de fundo
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Limpa o buffer de cor
