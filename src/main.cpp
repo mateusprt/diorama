@@ -26,25 +26,15 @@ void processInput(GLFWwindow *window);
 // Dimensões da janela (pode ser alterado em tempo de execução)
 const GLuint WIDTH = 1000, HEIGHT = 1000;
 
-//Variáveis globais da câmera
-glm::vec3 cameraPos = glm::vec3(0.0f, 1.1f, 8.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f,0.0,-1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f,1.0f,0.0f);
-Camera camera = Camera(cameraPos, cameraFront, cameraUp);
-
-const GLchar* VERTEX_SHADER_PATH = "../shaders/phong.vs";
-const GLchar* FRAGMENT_SHADER_PATH = "../shaders/phong.fs";
-
 GLFWwindow* window;
 Scene* myScene = nullptr;
 
-int main()
-{
+int main() {
 
 	initializeGLFW();
 
 	// Compilando e buildando o programa de shader
-	Shader shader(VERTEX_SHADER_PATH,FRAGMENT_SHADER_PATH);
+	Shader shader("../shaders/phong.vs","../shaders/phong.fs");
 	myScene = new Scene(shader);
 	myScene->prepare();
 
