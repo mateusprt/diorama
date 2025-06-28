@@ -91,7 +91,9 @@ void Scene::prepare() {
 
 void Scene::draw(GLFWwindow *window) {
 	glUseProgram(mShader.ID);
-  float currentFrame = glfwGetTime();
+	// pega o tempo atual
+ 	float currentFrame = glfwGetTime();
+	// diferençã entre 2 frames
 	deltaTime = currentFrame - lastFrame;
 	lastFrame = currentFrame;
 
@@ -186,6 +188,9 @@ void Scene::draw(GLFWwindow *window) {
 	glfwSwapBuffers(window);
 }
 
+// t é o frame atual (em segundos)
+// gera uma posição ao longo de um círculo
+// cada vez que t aumenta e o posição muda, a animação acontece
 glm::vec3 Scene::circularPath(float t, float radius, float height) {
 	return glm::vec3(
 			radius * std::cos(t),
