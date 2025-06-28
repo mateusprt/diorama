@@ -26,7 +26,7 @@ using json = nlohmann::json;
 
 Scene::Scene(const Shader& shader)
     : mCamera(
-        glm::vec3(0.0f, 1.1f, 8.0f),
+        glm::vec3(0.0f, 1.1f, 6.0f),
         glm::vec3(0.0f, 0.0f, -1.0f),
         glm::vec3(0.0f, 1.0f, 0.0f)
       ),

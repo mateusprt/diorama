@@ -151,8 +151,6 @@ int Object::loadSimpleOBJ(string filePath, int &nVertices) {
 		}
 
 		arqEntrada.close();
-
-		cout << "Gerando o buffer de geometria..." << endl;
 		GLuint VBO, VAO;
 
 	//Geração do identificador do VBO
