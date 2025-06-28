@@ -5,18 +5,6 @@ Este projeto implementa um visualizador 3D interativo usando **C++**, **OpenGL**
 ![Preview do Diorama](assets/preview.gif)
 ---
 
-## 📋 Sumário
-
-* [Visão Geral](#visão-geral)
-* [Pré-requisitos](#pré-requisitos)
-* [Instalação e Build](#instalação-e-build)
-* [Uso](#uso)
-* [Controles](#controles)
-* [Dependências](#dependências)
-* [Licença](#licença)
-
----
-
 ## 🛠️ Pré-requisitos
 
 Para este projeto, siga o tutorial de instalação detalhado em [GettingStarted.md](GettingStarted.md).
