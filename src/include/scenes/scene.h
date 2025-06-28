@@ -41,6 +41,8 @@ public:
 
     GLuint generateFloor();
 
+    bool loadConfig(const std::string& configPath);
+
     std::vector<Object> mObjects;
     Camera              mCamera;
     Shader              mShader;

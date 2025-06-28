@@ -1,0 +1,34 @@
+[
+  {
+    "type": "rat",
+    "objPath":  "../assets/models/rat/model.obj",
+    "texPath":  "../assets/models/rat/texture.jpeg",
+    "mtlPath":  "../assets/models/rat/model.mtl",
+    "offset":   { "x": -1.0, "y": 0.45, "z": 0.0 },
+    "scale":    1.0
+  },
+  {
+    "type": "rat",
+    "objPath":  "../assets/models/rat/model.obj",
+    "texPath":  "../assets/models/rat/texture.jpeg",
+    "mtlPath":  "../assets/models/rat/model.mtl",
+    "offset":   { "x":  0.0, "y": 0.45, "z": 0.0 },
+    "scale":    1.0
+  },
+  {
+    "type": "rat",
+    "objPath":  "../assets/models/rat/model.obj",
+    "texPath":  "../assets/models/rat/texture.jpeg",
+    "mtlPath":  "../assets/models/rat/model.mtl",
+    "offset":   { "x":  1.0, "y": 0.45, "z": 0.0 },
+    "scale":    1.0
+  },
+  {
+    "type": "cheese",
+    "objPath":  "../assets/models/cheese/cheese.obj",
+    "texPath":  "../assets/models/cheese/texture.png",
+    "mtlPath":  "../assets/models/cheese/cheese.mtl",
+    "offset":   { "x":  0.0, "y": 0.45, "z": 0.0 },
+    "scale":    0.5
+  }
+]

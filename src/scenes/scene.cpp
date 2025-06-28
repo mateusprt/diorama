@@ -14,10 +14,15 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+// JSON
+#include <json/json.hpp>
+
 // Classe gerenciadora dos shaders
 #include "Shader.h"
 
 #include "constants.h"
+
+using json = nlohmann::json;
 
 Scene::Scene(const Shader& shader)
     : mCamera(
@@ -52,24 +57,14 @@ void Scene::prepare() {
 	projLoc = glGetUniformLocation(mShader.ID, "projection");
 
 	// chão
-
 	int floorW, floorH;
   floorTexID = loadTexture("../assets/models/floor/concrete.jpg", floorW, floorH);
 	floorVAO = generateFloor();
 
-	// ratos
-	const string OBJ_PATH = "../assets/models/rat/model.obj";
-	const string TEXTURE_PATH = "../assets/models/rat/texture.jpeg";
-	const string MTL_PATH = "../assets/models/rat/model.mtl";
-  for (size_t i = 0; i < 3; i++) {
-		Object obj = Object(OBJ_PATH, TEXTURE_PATH, MTL_PATH);
-		mObjects.push_back(obj);
+	// carregando objetos da cena
+	if (!loadConfig("../config.json")) {
+		std::cerr << "Erro ao carregar cena via JSON\n";
 	}
-
-	//  queijo
-	Object cheese = Object("../assets/models/cheese/cheese.obj", "../assets/models/cheese/texture.png", "../assets/models/cheese/cheese.mtl");
-	cheese.scale = 0.5f;
-	mObjects.push_back(cheese);
 
 	// espalha os três modelos de ratos na cena
 	mObjects[0].offsetX = -1.0f;
@@ -249,4 +244,31 @@ GLuint Scene::generateFloor() {
 	glBindVertexArray(0);
 	
 	return floorVAO;
+}
+
+bool Scene::loadConfig(const std::string& configPath) {
+    std::ifstream in(configPath);
+    if (!in.is_open()) {
+        std::cerr << "Cannot open " << configPath << "\n";
+        return false;
+    }
+    json j;
+    in >> j;
+    for (auto& entry : j) {
+        std::string objP = entry.at("objPath");
+        std::string texP = entry.at("texPath");
+        std::string mtlP = entry.at("mtlPath");
+        float offX = entry.at("offset").at("x");
+        float offY = entry.at("offset").at("y");
+        float offZ = entry.at("offset").at("z");
+        float scl  = entry.at("scale");
+
+        Object obj(objP, texP, mtlP);
+        obj.offsetX = offX;
+        obj.offsetY = offY;
+        obj.offsetZ = offZ;
+        obj.scale   = scl;
+        mObjects.push_back(obj);
+    }
+    return true;
 }
