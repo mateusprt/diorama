@@ -58,7 +58,7 @@ void Scene::prepare() {
 
 	// chão
 	int floorW, floorH;
-  floorTexID = loadTexture("../assets/models/floor/concrete.jpg", floorW, floorH);
+  	floorTexID = loadTexture("../assets/models/floor/concrete.jpg", floorW, floorH);
 	floorVAO = generateFloor();
 
 	// carregando objetos da cena
@@ -80,8 +80,8 @@ void Scene::prepare() {
 	glActiveTexture(GL_TEXTURE0);
 
 	mShader.setFloat("ka",0.2);
-	mShader.setFloat("ks", 0.5);
-	mShader.setFloat("kd", 0.5);
+	mShader.setFloat("ks", 0.2);
+	mShader.setFloat("kd", 0.8);
 	mShader.setFloat("q", 10.0);
 
 	//Propriedades da fonte de luz
