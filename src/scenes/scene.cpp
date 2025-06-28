@@ -93,7 +93,7 @@ void Scene::draw(GLFWwindow *window) {
 	glUseProgram(mShader.ID);
 	// pega o tempo atual
  	float currentFrame = glfwGetTime();
-	// diferençã entre 2 frames
+	// diferençã entre 2 frames	
 	deltaTime = currentFrame - lastFrame;
 	lastFrame = currentFrame;
 
@@ -105,7 +105,7 @@ void Scene::draw(GLFWwindow *window) {
 	glm::mat4 view = glm::lookAt(mCamera.pos, mCamera.pos + mCamera.front, mCamera.up);
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
-		//Matriz de projeção
+	//Matriz de projeção - aqui atualiza o scroll
 	glm::mat4 projection = glm::perspective(glm::radians(mouse.fov), (float)Constants::WINDOW_WIDTH / Constants::WINDOW_HEIGHT, 0.1f, 100.0f);
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 

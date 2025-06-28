@@ -125,6 +125,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+	/**
+		a posição atual (xpos,ypos) - anterior (lastX,lastY) = o quanto o mouse se moveu em cada eixo. 
+	*/
   if (myScene->mouse.firstMouse) {
     myScene->lastX = xpos; myScene->lastY = ypos;
     myScene->mouse.firstMouse = false;
@@ -137,10 +140,12 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
   xoffset *= sensitivity;
   yoffset *= sensitivity;
 
+  // Soma os offsets aos ângulos de orientação (yaw e pitch) da câmera, e limita o pitch para não virar de cabeça para baixo
   myScene->mouse.yaw += xoffset;
   myScene->mouse.pitch += yoffset;
   myScene->mouse.pitch = glm::clamp(myScene->mouse.pitch, -89.0f, 89.0f);
 
+  // front diz para onde a câmera está olhando, e é usado em glm::lookAt para montar a matriz de visão
   glm::vec3 front;
   front.x = cos(glm::radians(myScene->mouse.yaw)) * cos(glm::radians(myScene->mouse.pitch));
   front.y = sin(glm::radians(myScene->mouse.pitch));
