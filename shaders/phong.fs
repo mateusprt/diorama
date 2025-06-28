@@ -1,10 +1,9 @@
 #version 430
 
-in vec3 finalColor;
-in vec2 texCoord;
-in vec3 scaledNormal;
-in vec3 fragPos;
-
+in vec3  finalColor;    // cor por vértice (aqui não usada no resultado final)
+in vec2  texCoord;      // coordenadas de textura (UV)
+in vec3  scaledNormal;  // normal transformada para o espaço mundo
+in vec3  fragPos;       // posição do fragmento em espaço mundo
 //Propriedades da superficie
 uniform float ka, kd, ks, q;
 
