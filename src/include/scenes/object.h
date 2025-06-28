@@ -18,6 +18,8 @@ public:
     string mtlPath;
     string texturePath;
 
+    string type;
+
     // Transformações e material
     glm::mat4 model;   // Matriz de transformações do objeto
     float ka;          // coeficiente ambiente

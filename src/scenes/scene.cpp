@@ -66,11 +66,6 @@ void Scene::prepare() {
 		std::cerr << "Erro ao carregar cena via JSON\n";
 	}
 
-	// espalha os três modelos de ratos na cena
-	mObjects[0].offsetX = -1.0f;
-	mObjects[1].offsetX =  0.0f;
-	mObjects[2].offsetX =  1.0f;
-
 	// Matriz identidade; //posição inicial do obj no mundo
 	glm::mat4 model = glm::mat4(1);
 	modelLoc = glGetUniformLocation(mShader.ID, "model");
@@ -136,26 +131,28 @@ void Scene::draw(GLFWwindow *window) {
 	// desenhando os ratos
 	float angle = (GLfloat)glfwGetTime();
 	for (size_t i = 0 ; i < mObjects.size()-1; i++) {
-		mObjects[i].offsetY = 0.45f; // ajuste para o objeto "pisar" no chão
-		mObjects[i].model = glm::mat4(1);
-		mObjects[i].model = glm::scale(mObjects[i].model, glm::vec3(mObjects[i].scale, mObjects[i].scale, mObjects[i].scale));
-		mObjects[i].model = glm::translate(mObjects[i].model, glm::vec3(mObjects[i].offsetX, mObjects[i].offsetY, mObjects[i].offsetZ));
+		if(mObjects[i].type == "rat") {
+			mObjects[i].offsetY = 0.45f; // ajuste para o objeto "pisar" no chão
+			mObjects[i].model = glm::mat4(1);
+			mObjects[i].model = glm::scale(mObjects[i].model, glm::vec3(mObjects[i].scale, mObjects[i].scale, mObjects[i].scale));
+			mObjects[i].model = glm::translate(mObjects[i].model, glm::vec3(mObjects[i].offsetX, mObjects[i].offsetY, mObjects[i].offsetZ));
 
-		if (rotateX) {
-		mObjects[selectedObject].model = glm::rotate(mObjects[selectedObject].model, angle, glm::vec3(1.0f, 0.0f, 0.0f));
-		} else if (rotateY) {
-			mObjects[selectedObject].model = glm::rotate(mObjects[selectedObject].model, angle, glm::vec3(0.0f, 1.0f, 0.0f));
-		} else if (rotateZ) {
-			mObjects[selectedObject].model = glm::rotate(mObjects[selectedObject].model, angle, glm::vec3(0.0f, 0.0f, 1.0f));
+			if (rotateX) {
+			mObjects[selectedObject].model = glm::rotate(mObjects[selectedObject].model, angle, glm::vec3(1.0f, 0.0f, 0.0f));
+			} else if (rotateY) {
+				mObjects[selectedObject].model = glm::rotate(mObjects[selectedObject].model, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+			} else if (rotateZ) {
+				mObjects[selectedObject].model = glm::rotate(mObjects[selectedObject].model, angle, glm::vec3(0.0f, 0.0f, 1.0f));
+			}
+
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(mObjects[i].model));
+
+			// Chamada de desenho - drawcall
+			// Poligono Preenchido - GL_TRIANGLES
+			glBindVertexArray(mObjects[i].VAO);
+			glBindTexture(GL_TEXTURE_2D, mObjects[i].texID);
+			glDrawArrays(GL_TRIANGLES, 0, mObjects[i].nVertices);
 		}
-
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(mObjects[i].model));
-
-		// Chamada de desenho - drawcall
-		// Poligono Preenchido - GL_TRIANGLES
-		glBindVertexArray(mObjects[i].VAO);
-		glBindTexture(GL_TEXTURE_2D, mObjects[i].texID);
-		glDrawArrays(GL_TRIANGLES, 0, mObjects[i].nVertices);
 	}
 
 	// desenhando o queijo
@@ -255,6 +252,7 @@ bool Scene::loadConfig(const std::string& configPath) {
     json j;
     in >> j;
     for (auto& entry : j) {
+        std::string objType = entry.at("type");
         std::string objP = entry.at("objPath");
         std::string texP = entry.at("texPath");
         std::string mtlP = entry.at("mtlPath");
@@ -264,6 +262,7 @@ bool Scene::loadConfig(const std::string& configPath) {
         float scl  = entry.at("scale");
 
         Object obj(objP, texP, mtlP);
+				obj.type = objType;
         obj.offsetX = offX;
         obj.offsetY = offY;
         obj.offsetZ = offZ;
