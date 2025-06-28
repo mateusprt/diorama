@@ -153,21 +153,22 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
   myScene->mCamera.front = glm::normalize(front);
 }
 
+
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-  myScene->mouse.fov -= (float)yoffset;
+  myScene->mouse.fov -= (float)yoffset; // yoffset > 0 e rolar p/ baixo = diminui; yoffset > 0
   myScene->mouse.fov = glm::clamp(myScene->mouse.fov,  1.0f, 45.0f);
 }
 
 void processInput(GLFWwindow *window) {
-	float speed = 5.0f * myScene->deltaTime;
+	float speed = 5.0f * myScene->deltaTime; // velocidade do desclocamento
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-			myScene->mCamera.pos += speed * myScene->mCamera.front;
+			myScene->mCamera.pos += speed * myScene->mCamera.front; // velocidade * pos. da câmera front
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 			myScene->mCamera.pos -= speed * myScene->mCamera.front;
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-			myScene->mCamera.pos -= glm::normalize(glm::cross(myScene->mCamera.front, myScene->mCamera.up)) * speed;
+			myScene->mCamera.pos -= glm::normalize(glm::cross(myScene->mCamera.front, myScene->mCamera.up)) * speed; // pega a posição p direita (front * up) (-)
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-			myScene->mCamera.pos += glm::normalize(glm::cross(myScene->mCamera.front, myScene->mCamera.up)) * speed;
+			myScene->mCamera.pos += glm::normalize(glm::cross(myScene->mCamera.front, myScene->mCamera.up)) * speed; // (+)
 	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
 			myScene->mCamera.pos -= myScene->mCamera.up * speed;
 	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
